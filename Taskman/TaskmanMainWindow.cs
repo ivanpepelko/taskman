@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Diagnostics;
 using System.Threading;
+using System.IO;
 
 namespace Taskman {
     public partial class TaskmanMainWindow : Form {
@@ -18,28 +19,16 @@ namespace Taskman {
             InitializeComponent();
         }
 
-        public ListViewItem[] getProcessesListItems() {
-            Process[] procs = Process.GetProcesses();
-            List<ListViewItem> processes = new List<ListViewItem>();
-
-            foreach (Process proc in procs) {
-                processes.Add(new ListViewItem(new string[] {
-                    proc.ProcessName, proc.Id.ToString(), string.Format("{0:n0} K", (double)proc.WorkingSet64 / 1000)
-                    }));
-            }
-
-            return processes.ToArray();
-        }
-
         private void runToolStripMenuItem_Click(object sender, EventArgs e) {
             if (openFileDialog1.ShowDialog() == DialogResult.OK) {
-                StartedProcess = Process.Start(openFileDialog1.FileName);
+                if (File.Exists(openFileDialog1.FileName))
+                    StartedProcess = Process.Start(openFileDialog1.FileName); //pokretanje programa, obratiti pažnju na uvjete (redak iznad) 
             }
         }
 
         private void endProcessToolStripMenuItem_Click(object sender, EventArgs e) {
             if (StartedProcess != null && !StartedProcess.HasExited) {
-                StartedProcess.Kill();
+                StartedProcess.Kill(); //zatvaranje programa, obratiti pažnju na uvjete (redak iznad)
                 MessageBox.Show("Process " + StartedProcess.StartInfo.FileName + " closed.");
             } else
                 MessageBox.Show("There is currently no process started with this program.");
@@ -73,19 +62,18 @@ namespace Taskman {
         }
 
         void loadProcesses() {
-            Process[] procs = Process.GetProcesses();
-            procs.OrderBy(p => p.ProcessName);
+            Process[] procs = Process.GetProcesses(); //dohvaćanje svih procesa
 
             List<ListViewItem> processes = new List<ListViewItem>();
 
-            foreach (Process proc in procs.OrderBy(p => p.ProcessName)) {
+            foreach (Process proc in procs.OrderBy(p => p.ProcessName)) { //OrderBy -> sortiranje po imenu
                 processes.Add(new ListViewItem(new string[] {
                     proc.ProcessName, proc.Id.ToString(), string.Format("{0:n0} K", (double)proc.WorkingSet64 / 1024), proc.Threads.Count.ToString()
                     }));
             }
 
-            processesListView.Items.Clear();
-            processesListView.Items.AddRange(processes.ToArray());
+            processesListView.Items.Clear(); //ako je lista već popunjena, briše se (ako nije popunjena, nema efekta)
+            processesListView.Items.AddRange(processes.ToArray()); //dodavanje procesa na listu
         }
 
         private void TaskmanMainWindow_Resize(object sender, EventArgs e) {
